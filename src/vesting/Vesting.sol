@@ -10,10 +10,7 @@ import {Simple777Recipient} from "./../utils/Simple777Recipient.sol";
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import {SuperAppBase} from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol";
 
-// TODO: ADD SUPPORT FOR MULTIPLES LPTs on this contract or CREATE MULTIPLE ONES. It would be better to use this one if possible or not too complicated.
 
-// forked from https://github.com/SetProtocol/index-coop-contracts/blob/master/contracts/staking/StakingRewardsV2.sol
-// NOTE: V2 allows setting of rewardsDuration in constructor
 contract Vesting is ReentrancyGuard, Simple777Recipient {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -153,9 +150,9 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
 
         for (uint256 i; i < contributors.length; i++) {
             if (payrollFlows[i] != 0) {
-                _updateOutflow(payrollToken, msg.sender, payrollFlows[i]);
+                _updateOutflow(payrollToken, contributors[i], payrollFlows[i]);
             } else {
-                _deleteOutflow(payrollToken, msg.sender);
+                _deleteOutflow(payrollToken, contributors[i]);
             }
         }
     }
