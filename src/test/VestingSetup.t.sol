@@ -18,7 +18,7 @@ contract StreamswapSetupTest is SuperfluidTester {
 
     /// @dev Example Super Token to test
     IMySuperToken internal eth;
-    IMySuperToken internal fiat;
+    IMySuperToken internal dai;
     Vesting internal vesting;
 
     AggregatorV2V3Interface internal chainlinkETH;
@@ -26,7 +26,7 @@ contract StreamswapSetupTest is SuperfluidTester {
 
     /// @dev Constants for Testing
     uint256 internal constant ethInitialSupply = 10000000 ether; // 10 millions
-    uint256 internal constant fiatInitialSupply = 100000000 ether; // 100 millions
+    uint256 internal constant daiInitialSupply = 100000000 ether; // 100 millions
     address internal constant admin = address(1);
     address internal constant manager = address(2);
     address internal constant alice = address(3);
@@ -46,26 +46,15 @@ contract StreamswapSetupTest is SuperfluidTester {
         // Deploy SuperTokens
         eth = IMySuperToken(address(new MySuperToken()));
 
-        fiat = IMySuperToken(address(new MySuperToken()));
+        dai = IMySuperToken(address(new MySuperToken()));
 
         // Upgrade SuperTokens with the SuperTokenFactory
         sf.superTokenFactory.initializeCustomSuperToken(address(eth));
-        sf.superTokenFactory.initializeCustomSuperToken(address(fiat));
+        sf.superTokenFactory.initializeCustomSuperToken(address(dai));
 
         // initialize SuperTokens
         eth.initialize("Super ETH", "ETHx", ethInitialSupply);
-        fiat.initialize("Super FIAT", "FIATx", fiatInitialSupply);
-
-        // Mint some amount
-        uint256 amountETH = 10 ether;
-        eth.mint(alice, amountETH);
-        eth.mint(bob, amountETH);
-        eth.mint(charlie, amountETH);
-
-        uint256 amountFIAT = 100000 ether; // 100k per user
-        fiat.mint(alice, amountFIAT);
-        fiat.mint(bob, amountFIAT);
-        fiat.mint(charlie, amountFIAT);
+        dai.initialize("Super DAI", "DAIx", daiInitialSupply);
 
         helper = new CallAgreementHelper(sf.host, sf.cfa);
 
@@ -73,9 +62,10 @@ contract StreamswapSetupTest is SuperfluidTester {
             sf.host,
             sf.cfa,
             address(eth),
-            address(fiat),
+            address(dai),
             admin,
-            manager
+            manager,
+            block.timestamp + 4 * 52 * 86400 // 4 years
         );
 
         vm.stopPrank();
@@ -83,10 +73,10 @@ contract StreamswapSetupTest is SuperfluidTester {
 
     function testDeployment() public {
         assertEq(address(vesting.vestingToken()), address(eth));
-        assertEq(address(vesting.payrollToken()), address(fiat));
+        assertEq(address(vesting.payrollToken()), address(dai));
         assertEq(vesting.dao(), admin);
         assertEq(vesting.manager(), manager);
-        assertEq(fiat.balanceOf(address(vesting)), 0);
+        assertEq(dai.balanceOf(address(vesting)), 0);
         assertEq(eth.balanceOf(address(vesting)), 0);
     }
 
@@ -120,7 +110,7 @@ contract StreamswapSetupTest is SuperfluidTester {
         assertEq(initFlowRateVesting, 0);
 
         (, int96 initFlowRatePayroll, , ) = sf.cfa.getFlow(
-            fiat,
+            dai,
             address(vesting),
             alice
         );
@@ -128,7 +118,7 @@ contract StreamswapSetupTest is SuperfluidTester {
         assertEq(initFlowRatePayroll, 0);
 
         uint96 amountVesting = 385802469136; // 1 ether (1e18) per month
-        uint96 amountPayroll = 3858024691360000; // 10000 fiat (1e18) per month
+        uint96 amountPayroll = 3858024691360000; // 10000 dai (1e18) per month
         vm.startPrank(admin);
         contributors.push(alice);
         vestingFlows.push(amountVesting);
@@ -136,7 +126,7 @@ contract StreamswapSetupTest is SuperfluidTester {
 
         // Mint/Add/Send token to the contract
         eth.mint(address(vesting), 10000 ether); //10000 gov token
-        fiat.mint(address(vesting), 1000000 ether); //1000000 fiat
+        dai.mint(address(vesting), 1000000 ether); //1000000 dai
 
         vesting.addCoreContributors(contributors, vestingFlows, payrollFlows);
 
@@ -148,7 +138,7 @@ contract StreamswapSetupTest is SuperfluidTester {
         assertEq(flowRateVesting, int96(amountVesting));
 
         (, int96 flowRatePayroll, , ) = sf.cfa.getFlow(
-            fiat,
+            dai,
             address(vesting),
             alice
         );
@@ -206,27 +196,27 @@ contract StreamswapSetupTest is SuperfluidTester {
         assertEq(initFlowRateVesting, 0);
 
         (, int96 initFlowRatePayroll, , ) = sf.cfa.getFlow(
-            fiat,
+            dai,
             address(vesting),
             bob
         );
 
         assertEq(initFlowRatePayroll, 0);
 
-        uint96 amountPayroll = 3858024691360000; // 10000 fiat (1e18) per month
+        uint96 amountPayroll = 3858024691360000; // 10000 dai (1e18) per month
 
         contributors.push(bob);
         payrollFlows.push(amountPayroll);
 
         // Mint/Add/Send token to the contract
         vm.prank(admin);
-        fiat.mint(address(vesting), 1000000 ether); //1000000 fiat
+        dai.mint(address(vesting), 1000000 ether); //1000000 dai
 
         vm.prank(manager);
         vesting.addPayrolls(contributors, payrollFlows);
 
         (, int96 flowRatePayroll, , ) = sf.cfa.getFlow(
-            fiat,
+            dai,
             address(vesting),
             bob
         );
@@ -239,27 +229,27 @@ contract StreamswapSetupTest is SuperfluidTester {
     function test_updatePayrolls_remove() public {
         // Bob has no incoming flows
         (, int96 initFlowRatePayroll, , ) = sf.cfa.getFlow(
-            fiat,
+            dai,
             address(vesting),
             bob
         );
 
         assertEq(initFlowRatePayroll, 0);
 
-        uint96 amountPayroll = 3858024691360000; // 10000 fiat (1e18) per month
+        uint96 amountPayroll = 3858024691360000; // 10000 dai (1e18) per month
 
         contributors.push(bob);
         payrollFlows.push(amountPayroll);
 
         // Mint/Add/Send token to the contract
         vm.prank(admin);
-        fiat.mint(address(vesting), 1000000 ether); //1000000 fiat
+        dai.mint(address(vesting), 1000000 ether); //1000000 dai
 
         vm.prank(manager);
         vesting.addPayrolls(contributors, payrollFlows);
 
         (, int96 flowRatePayroll, , ) = sf.cfa.getFlow(
-            fiat,
+            dai,
             address(vesting),
             bob
         );
@@ -271,7 +261,7 @@ contract StreamswapSetupTest is SuperfluidTester {
         vesting.updatePayrolls(contributors, payrollFlows);
 
         (, int96 lastFlowRatePayroll, , ) = sf.cfa.getFlow(
-            fiat,
+            dai,
             address(vesting),
             bob
         );

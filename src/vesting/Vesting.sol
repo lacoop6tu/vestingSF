@@ -17,8 +17,8 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
 
     /* ========== STATE VARIABLES ========== */
   
-    uint256 public totalDepositsVesting;
-    uint256 public totalDepositsPayroll;
+    // uint256 public totalDepositsVesting;
+    // uint256 public totalDepositsPayroll;
 
 
     // SUPERFLUID PART
@@ -30,20 +30,20 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
 
     address public dao;
     address public manager;
+    uint256 public endVesting;
+
 
     mapping(address => mapping(IERC20 => Data)) public contributors;
 
     struct Data {
-        bool active;
-        uint256 inFlowRate;
         uint256 outFlowRate;
-        uint256 totalFlows;
+       // uint256 totalFlows;
     }
 
-    struct Info {
-        uint256 vestingPerSecond;
-        uint256 payrollPerSecond;
-    }
+    // struct Info {
+    //     uint256 vestingPerSecond;
+    //     uint256 payrollPerSecond;
+    // }
 
     /* ========== EVENTS ========== */
 
@@ -57,12 +57,14 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         address _vestingToken,
         address _payrollToken,
         address _dao,
-        address _manager
+        address _manager,
+        uint256 _endVesting
     ) public Simple777Recipient(_vestingToken, _payrollToken) {
         _host = host;
         _cfa = cfa;
         dao = _dao;
         manager = _manager;
+        endVesting = _endVesting;
 
         vestingToken = ISuperToken(_vestingToken);
         payrollToken = ISuperToken(_payrollToken);
