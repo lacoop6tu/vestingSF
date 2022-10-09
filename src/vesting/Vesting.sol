@@ -10,16 +10,14 @@ import {Simple777Recipient} from "./../utils/Simple777Recipient.sol";
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 import {SuperAppBase} from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol";
 
-
 contract Vesting is ReentrancyGuard, Simple777Recipient {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     /* ========== STATE VARIABLES ========== */
-  
+
     // uint256 public totalDepositsVesting;
     // uint256 public totalDepositsPayroll;
-
 
     // SUPERFLUID PART
     ISuperfluid internal _host; // host
@@ -30,14 +28,14 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
 
     address public dao;
     address public manager;
+    address public registry; // Autonomy registry executor
     uint256 public endVesting;
-
 
     mapping(address => mapping(IERC20 => Data)) public contributors;
 
     struct Data {
         uint256 outFlowRate;
-       // uint256 totalFlows;
+        // uint256 totalFlows;
     }
 
     // struct Info {
@@ -46,8 +44,6 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
     // }
 
     /* ========== EVENTS ========== */
-
-   
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -58,17 +54,19 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         address _payrollToken,
         address _dao,
         address _manager,
+        address _registry,
         uint256 _endVesting
     ) public Simple777Recipient(_vestingToken, _payrollToken) {
         _host = host;
         _cfa = cfa;
         dao = _dao;
         manager = _manager;
+        registry = _registry;
         endVesting = _endVesting;
 
         vestingToken = ISuperToken(_vestingToken);
         payrollToken = ISuperToken(_payrollToken);
-    
+
         uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL |
             SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
             SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
@@ -77,8 +75,11 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         _host.registerApp(configWord);
     }
 
-    modifier onlyDAO() {
-        require(msg.sender == dao, "ONLY DAO");
+    modifier onlyDAOorRegistry() {
+        require(
+            msg.sender == dao || msg.sender == registry,
+            "ONLY DAO OR REGISTRY"
+        );
         _;
     }
 
@@ -89,16 +90,13 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
 
     /* ========== VIEWS ========== */
 
- 
-
-
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function addCoreContributors(
         address[] calldata contributors,
         uint256[] calldata vestingFlows,
         uint256[] calldata payrollFlows
-    ) external onlyDAO {
+    ) external onlyDAOorRegistry {
         require(contributors.length == vestingFlows.length, "Length mismatch");
         require(vestingFlows.length == payrollFlows.length, "Length mismatch ");
 
@@ -117,7 +115,7 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
     function updateVesting(
         address[] calldata contributors,
         uint256[] calldata vestingFlows
-    ) external onlyDAO {
+    ) external onlyDAOorRegistry {
         require(contributors.length == vestingFlows.length, "Length mismatch");
 
         for (uint256 i; i < contributors.length; i++) {
@@ -130,7 +128,7 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
     }
 
     // Manager role
-    
+
     function addPayrolls(
         address[] calldata contributors,
         uint256[] calldata payrollFlows
@@ -168,15 +166,12 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         address customer,
         uint256 flow
     ) internal {
-
-        (   uint256 timestamp,
+        (
+            uint256 timestamp,
             int96 outFlowRate,
             uint256 deposit,
-            uint256 owedDeposit) = _cfa.getFlow(
-            _tokenOut,
-            address(this),
-            customer
-        );
+            uint256 owedDeposit
+        ) = _cfa.getFlow(_tokenOut, address(this), customer);
 
         require(outFlowRate == 0, "OUTFLOW RATE > 0");
 

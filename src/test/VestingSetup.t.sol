@@ -29,6 +29,7 @@ contract StreamswapSetupTest is SuperfluidTester {
     uint256 internal constant daiInitialSupply = 100000000 ether; // 100 millions
     address internal constant admin = address(1);
     address internal constant manager = address(2);
+    address internal constant registry = address(6);
     address internal constant alice = address(3);
     address internal constant bob = address(4);
     address internal constant charlie = address(5);
@@ -65,6 +66,7 @@ contract StreamswapSetupTest is SuperfluidTester {
             address(dai),
             admin,
             manager,
+            registry,
             block.timestamp + 4 * 52 * 86400 // 4 years
         );
 
@@ -185,6 +187,46 @@ contract StreamswapSetupTest is SuperfluidTester {
         delete payrollFlows;
     }
 
+    function test_cancelVestingByRegistry() public {
+        uint96 amountVesting = 385802469136; // 1 ether (1e18) per month
+
+        vm.startPrank(admin);
+        contributors.push(alice);
+        vestingFlows.push(amountVesting);
+        payrollFlows.push(0);
+        // Mint/Add/Send token to the contract
+        eth.mint(address(vesting), 10000 ether); //10000 gov token
+
+        vesting.addCoreContributors(contributors, vestingFlows, payrollFlows);
+
+        (, int96 flowRateVesting, , ) = sf.cfa.getFlow(
+            eth,
+            address(vesting),
+            alice
+        );
+
+        assertEq(flowRateVesting, int96(amountVesting));
+
+        uint96 newAmountVesting = 38580246913600; // 100 ether (1e18) per month
+        vestingFlows[0] = newAmountVesting;
+        vm.stopPrank();
+
+        // TODO simulate registry call to VestingCondition
+        vm.startPrank(registry);
+        vesting.updateVesting(contributors, vestingFlows);
+
+        (, int96 newFlowRateVesting, , ) = sf.cfa.getFlow(
+            eth,
+            address(vesting),
+            alice
+        );
+        assertEq(newFlowRateVesting, int96(newAmountVesting));
+
+        delete contributors;
+        delete vestingFlows;
+        delete payrollFlows;
+    }
+
     function test_addPayrolls() public {
         // Bob has no incoming flows
         (, int96 initFlowRateVesting, , ) = sf.cfa.getFlow(
@@ -256,7 +298,7 @@ contract StreamswapSetupTest is SuperfluidTester {
         assertEq(flowRatePayroll, int96(amountPayroll));
 
         payrollFlows[0] = 0;
-        
+
         vm.prank(manager);
         vesting.updatePayrolls(contributors, payrollFlows);
 
@@ -270,6 +312,4 @@ contract StreamswapSetupTest is SuperfluidTester {
         delete contributors;
         delete payrollFlows;
     }
-
-  
 }
