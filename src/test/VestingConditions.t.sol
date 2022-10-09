@@ -3,16 +3,19 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "../autonomy/VestingConditions.sol";
+import {ActionEndVesting} from "../autonomy/ActionEndVesting.sol";
 import {Vesting} from "../vesting/Vesting.sol";
 
 contract VestingConditionsTest is Test {
     VestingConditions vestingConditions;
+    ActionEndVesting actionEndVesting;
     address internal constant vestingContract = address(1);
     address[] contributors;
     uint256[] vestingFlows;
 
     function setUp() public {
         vestingConditions = new VestingConditions(vestingContract);
+        actionEndVesting = new ActionEndVesting(vestingContract);
     }
 
     function testCheckEndVesting() public {
@@ -25,7 +28,7 @@ contract VestingConditionsTest is Test {
             vestingFlows
         );
         vm.mockCall(vestingContract, data, abi.encode());
-        vestingConditions.closeVestingFlow(contributors, vestingFlows);
+        actionEndVesting.closeVestingFlow(contributors, vestingFlows);
     }
 
     function testCheckEndVestingRevert() public {
@@ -33,6 +36,6 @@ contract VestingConditionsTest is Test {
         contributors.push(address(1));
         vestingFlows.push(1);
         vm.expectRevert(VestingConditions.VestingFlowNotZero.selector);
-        vestingConditions.closeVestingFlow(contributors, vestingFlows);
+        actionEndVesting.closeVestingFlow(contributors, vestingFlows);
     }
 }
