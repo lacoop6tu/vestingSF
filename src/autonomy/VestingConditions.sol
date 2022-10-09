@@ -36,7 +36,7 @@ contract VestingConditions {
     }
 
     // AUTONOMY REGISTRY
-
+    // TODO test this
     function createNewRequest(address autonomyTarget, address contributor)
         internal
         returns (uint256)

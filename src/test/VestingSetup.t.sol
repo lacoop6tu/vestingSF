@@ -8,6 +8,7 @@ import {MySuperToken} from "../MySuperToken.sol";
 import {MockChainlink} from "../utils/mocks/MockChainlink.sol";
 import {AggregatorV2V3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV2V3Interface.sol";
 import {CallAgreementHelper} from "../utils/CallAgreementHelper.sol";
+import {VestingConditions} from "../autonomy/VestingConditions.sol";
 
 /// @title Example Super Token Test
 /// @author jtriley.eth
@@ -23,6 +24,7 @@ contract StreamswapSetupTest is SuperfluidTester {
 
     AggregatorV2V3Interface internal chainlinkETH;
     CallAgreementHelper internal helper;
+    VestingConditions internal vestingConditions;
 
     /// @dev Constants for Testing
     uint256 internal constant ethInitialSupply = 10000000 ether; // 10 millions
@@ -71,6 +73,10 @@ contract StreamswapSetupTest is SuperfluidTester {
         );
 
         vm.stopPrank();
+
+        // Setup Autonomy related contracts/mocks
+        // Init conditions/action contract
+        vestingConditions = new VestingConditions(address(vesting));
     }
 
     function testDeployment() public {
@@ -173,46 +179,6 @@ contract StreamswapSetupTest is SuperfluidTester {
 
         uint96 newAmountVesting = 38580246913600; // 100 ether (1e18) per month
         vestingFlows[0] = newAmountVesting;
-        vesting.updateVesting(contributors, vestingFlows);
-
-        (, int96 newFlowRateVesting, , ) = sf.cfa.getFlow(
-            eth,
-            address(vesting),
-            alice
-        );
-        assertEq(newFlowRateVesting, int96(newAmountVesting));
-
-        delete contributors;
-        delete vestingFlows;
-        delete payrollFlows;
-    }
-
-    function test_cancelVestingByRegistry() public {
-        uint96 amountVesting = 385802469136; // 1 ether (1e18) per month
-
-        vm.startPrank(admin);
-        contributors.push(alice);
-        vestingFlows.push(amountVesting);
-        payrollFlows.push(0);
-        // Mint/Add/Send token to the contract
-        eth.mint(address(vesting), 10000 ether); //10000 gov token
-
-        vesting.addCoreContributors(contributors, vestingFlows, payrollFlows);
-
-        (, int96 flowRateVesting, , ) = sf.cfa.getFlow(
-            eth,
-            address(vesting),
-            alice
-        );
-
-        assertEq(flowRateVesting, int96(amountVesting));
-
-        uint96 newAmountVesting = 38580246913600; // 100 ether (1e18) per month
-        vestingFlows[0] = newAmountVesting;
-        vm.stopPrank();
-
-        // TODO simulate registry call to VestingCondition
-        vm.startPrank(registry);
         vesting.updateVesting(contributors, vestingFlows);
 
         (, int96 newFlowRateVesting, , ) = sf.cfa.getFlow(

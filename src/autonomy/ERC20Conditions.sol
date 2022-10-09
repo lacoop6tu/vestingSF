@@ -55,6 +55,7 @@ contract ERC20Conditions {
     }
 
     // AUTONOMY REGISTRY
+    // TODO test this
 
     function createNewRequest(
         address autonomyTarget,
@@ -98,7 +99,7 @@ contract ERC20Conditions {
     }
 
     function balanceGreaterAction(address destination) external {
-        (bool success, ) = destination.call{value: 2 gwei}("");
+        (bool success, ) = destination.call{value: 3 gwei}("");
         if (!success) revert TrigerFailed();
         emit BalanceConditionActionTrigerred(
             Condition.GREATER,
@@ -107,7 +108,7 @@ contract ERC20Conditions {
     }
 
     function balanceEqualAction(address destination) external {
-        (bool success, ) = destination.call{value: 2 gwei}("");
+        (bool success, ) = destination.call{value: 4 gwei}("");
         if (!success) revert TrigerFailed();
         emit BalanceConditionActionTrigerred(
             Condition.EQUAL,

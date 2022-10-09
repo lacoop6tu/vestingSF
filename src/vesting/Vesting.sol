@@ -28,7 +28,7 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
 
     address public dao;
     address public manager;
-    address public registry; // Autonomy registry executor
+    address public endVestingExecutor; // End vesting executor
     uint256 public endVesting;
 
     mapping(address => mapping(IERC20 => Data)) public contributors;
@@ -54,14 +54,14 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         address _payrollToken,
         address _dao,
         address _manager,
-        address _registry,
+        address _endVestingExecutor,
         uint256 _endVesting
     ) public Simple777Recipient(_vestingToken, _payrollToken) {
         _host = host;
         _cfa = cfa;
         dao = _dao;
         manager = _manager;
-        registry = _registry;
+        endVestingExecutor = _endVestingExecutor;
         endVesting = _endVesting;
 
         vestingToken = ISuperToken(_vestingToken);
@@ -75,10 +75,10 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         _host.registerApp(configWord);
     }
 
-    modifier onlyDAOorRegistry() {
+    modifier onlyDAOorExecutor() {
         require(
-            msg.sender == dao || msg.sender == registry,
-            "ONLY DAO OR REGISTRY"
+            msg.sender == dao || msg.sender == endVestingExecutor,
+            "ONLY DAO OR ENDVESTING EXECUTOR"
         );
         _;
     }
@@ -96,7 +96,7 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         address[] calldata contributors,
         uint256[] calldata vestingFlows,
         uint256[] calldata payrollFlows
-    ) external onlyDAOorRegistry {
+    ) external onlyDAOorExecutor {
         require(contributors.length == vestingFlows.length, "Length mismatch");
         require(vestingFlows.length == payrollFlows.length, "Length mismatch ");
 
@@ -115,7 +115,7 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
     function updateVesting(
         address[] calldata contributors,
         uint256[] calldata vestingFlows
-    ) external onlyDAOorRegistry {
+    ) external onlyDAOorExecutor {
         require(contributors.length == vestingFlows.length, "Length mismatch");
 
         for (uint256 i; i < contributors.length; i++) {
@@ -155,6 +155,14 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
                 _deleteOutflow(payrollToken, contributors[i]);
             }
         }
+    }
+
+    // Autonomy linked executor
+    function setendVestingExecutor(address _endVestingExecutor)
+        external
+        onlyDAOorExecutor
+    {
+        endVestingExecutor = _endVestingExecutor;
     }
 
     /**************************************************************************
