@@ -278,4 +278,19 @@ contract StreamswapSetupTest is SuperfluidTester {
         delete contributors;
         delete payrollFlows;
     }
+
+    function testWithdraw() public {
+        vm.startPrank(admin);
+        eth.mint(address(vesting), 10000 ether); //10000 gov token
+        dai.mint(address(vesting), 1000000 ether);
+        uint256 amountVestedToken = eth.balanceOf(address(vesting));
+        uint256 amountPayrollToken = dai.balanceOf(address(vesting));
+        uint256 adminVestedToken = eth.balanceOf(admin);
+        uint256 adminPayrollToken = dai.balanceOf(admin);
+
+        vesting.withdrawAllFunds();
+
+        assertEq(eth.balanceOf(admin), amountVestedToken + adminVestedToken);
+        assertEq(dai.balanceOf(admin), amountPayrollToken + adminPayrollToken);
+    }
 }

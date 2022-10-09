@@ -36,21 +36,28 @@ contract VestingConditions {
     }
 
     // AUTONOMY REGISTRY
-    // TODO test this
-    function createNewRequest(address autonomyTarget, address contributor)
-        internal
-        returns (uint256)
-    {
-        bytes memory callData = abi.encodeWithSelector(
+    function createNewRequest(
+        address autonomyTarget,
+        address vesting,
+        address[] calldata contributors,
+        uint256[] calldata vestingFlows
+    ) internal returns (uint256) {
+        bytes memory callDataCondition = abi.encodeWithSelector(
             VestingConditions.checkVestingEndingTime.selector,
-            contributor
+            vesting
+        );
+
+        bytes memory callDataTrigger = abi.encodeWithSelector(
+            VestingConditions.closeVestingFlow.selector,
+            contributors,
+            vestingFlows
         );
 
         IRegistry registry = IRegistry(autonomyTarget);
         uint256 reqId = registry.newReq(
             autonomyTarget,
             payable(address(0)),
-            callData,
+            abi.encode(callDataCondition, callDataTrigger),
             0,
             true,
             true,
@@ -71,5 +78,9 @@ contract VestingConditions {
             if (vestingFlows[i] != 0) revert VestingFlowNotZero();
         }
         _vestingSF.updateVesting(contributors, vestingFlows);
+    }
+
+    function setVesting(address vesting) external {
+        _vestingSF = Vesting(vesting);
     }
 }

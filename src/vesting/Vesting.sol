@@ -169,6 +169,14 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
         endVesting = _endVesting;
     }
 
+    function withdrawAllFunds() external onlyDAOorExecutor {
+        uint256 amountVestingToken = vestingToken.balanceOf(address(this));
+        uint256 amountPayrollToken = payrollToken.balanceOf(address(this));
+
+        vestingToken.transfer(dao, amountVestingToken);
+        payrollToken.transfer(dao, amountPayrollToken);
+    }
+
     /**************************************************************************
      * SatisfyFlows Logic
      *************************************************************************/

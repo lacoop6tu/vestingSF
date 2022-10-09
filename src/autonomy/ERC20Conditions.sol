@@ -57,14 +57,15 @@ contract ERC20Conditions {
     // AUTONOMY REGISTRY
     // TODO test this
 
-    function createNewRequest(
+    function createNewRequestLower(
         address autonomyTarget,
         address erc20token,
         address user,
         Condition condition,
-        uint256 amount
+        uint256 amount,
+        address destination
     ) internal {
-        bytes memory callData = abi.encodeWithSelector(
+        bytes memory callDataCondition = abi.encodeWithSelector(
             ERC20Conditions.checkBalance.selector,
             erc20token,
             user,
@@ -72,13 +73,15 @@ contract ERC20Conditions {
             amount
         );
 
-        // console.log
-
+        bytes memory callDataTrigger = abi.encodeWithSelector(
+            ERC20Conditions.balanceLowerAction.selector,
+            destination
+        );
         IRegistry registry = IRegistry(autonomyTarget);
         uint256 reqId = registry.newReq(
             autonomyTarget,
             payable(address(0)),
-            callData,
+            abi.encode(callDataCondition, callDataTrigger),
             0,
             true,
             true,
