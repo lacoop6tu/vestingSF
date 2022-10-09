@@ -158,11 +158,15 @@ contract Vesting is ReentrancyGuard, Simple777Recipient {
     }
 
     // Autonomy linked executor
-    function setendVestingExecutor(address _endVestingExecutor)
+    function setEndVestingExecutor(address _endVestingExecutor)
         external
         onlyDAOorExecutor
     {
         endVestingExecutor = _endVestingExecutor;
+    }
+
+    function setEndVestingTime(uint256 _endVesting) external onlyDAOorExecutor {
+        endVesting = _endVesting;
     }
 
     /**************************************************************************
